@@ -1,0 +1,21 @@
+{
+  "name": "errand-agent",
+  "version": "1.0.0",
+  "description": "An AI shopping agent that pays with PayPal, on a spending leash you control.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0"
+  }
+}
