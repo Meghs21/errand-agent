@@ -3,36 +3,94 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as paypal from "./src/paypal.js";
+import { createMandate, revokeMandate, listMandates, mandateForToken, publicMandate } from "./src/mandates.js";
+import { requestPayment, approvePayment, declinePayment, refundPayment, releaseHolds, agentView } from "./src/payments.js";
 import { chat, resetConversation } from "./src/agent.js";
 import { usingChannel3 } from "./src/catalog.js";
-import { sanitizeRules } from "./src/policy.js";
 import { getState, save, reset } from "./src/store.js";
-import { spendingStatus, startApproval, completeApproval, declinePurchase, refundPurchase } from "./src/purchases.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json({ limit: "100kb" }));
-app.use(express.static(path.join(here, "public")));
+app.use(express.static(path.join(here, "public"), { extensions: ["html"] }));
 
 const PORT = Number(process.env.PORT) || 3000;
 const baseUrl = (req) => process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`;
+const aiReady = () => Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 
 // Wrap async handlers so errors become JSON instead of crashing the process.
 const route = (fn) => async (req, res) => {
   try {
-    res.json(await fn(req, res));
+    const out = await fn(req, res);
+    if (!res.headersSent) res.json(out);
   } catch (err) {
-    console.error(err);
-    res.status(err.status && err.status < 500 ? err.status : 500).json({ error: err.message, debugId: err.debugId });
+    if (!err.status || err.status >= 500) console.error(err);
+    res.status(err.status && err.status < 600 ? err.status : 500).json({ error: err.message, debugId: err.debugId });
   }
 };
 
-function snapshot() {
-  const { wallet, purchases } = getState();
+// ---------------------------------------------------------------------------
+// Agent API: what AI agents call, authenticated with a mandate token.
+// ---------------------------------------------------------------------------
+
+function requireMandate(req) {
+  const token = (req.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  const mandate = mandateForToken(token);
+  if (!mandate) throw Object.assign(new Error("Unknown or missing mandate token."), { status: 401 });
+  return mandate;
+}
+
+app.get(
+  "/v1/mandate",
+  route((req) => {
+    const m = publicMandate(requireMandate(req));
+    return {
+      mandate_id: m.id,
+      agent_name: m.agentName,
+      status: m.status,
+      purpose: m.purpose,
+      currency: m.currency,
+      per_purchase_limit: m.perPurchaseLimit,
+      auto_approve_limit: m.autoApproveLimit,
+      total_limit: m.totalLimit,
+      remaining: m.remaining,
+      max_payments_per_day: m.maxPaymentsPerDay,
+      allowed_merchants: m.allowedMerchants,
+      expires_at: m.expiresAt,
+    };
+  }),
+);
+
+app.post(
+  "/v1/payments",
+  route(async (req, res) => {
+    const mandate = requireMandate(req);
+    const key = req.get("idempotency-key")?.slice(0, 200);
+    const payment = await requestPayment({ mandate, cartInput: req.body, idempotencyKey: key });
+    res.status(201).json(agentView(payment));
+  }),
+);
+
+app.get(
+  "/v1/payments/:id",
+  route((req) => {
+    const mandate = requireMandate(req);
+    const p = getState().payments.find((x) => x.id === req.params.id && x.mandateId === mandate.id);
+    if (!p) throw Object.assign(new Error("No such payment for this mandate."), { status: 404 });
+    return agentView(p);
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Owner dashboard API. (Single-owner prototype: no login, run it locally.)
+// ---------------------------------------------------------------------------
+
+function overview() {
+  const { wallet, payments } = getState();
   return {
-    ...spendingStatus(),
     wallet: wallet ? { email: wallet.email, linkedAt: wallet.linkedAt } : null,
-    purchases,
+    mandates: listMandates(),
+    payments: payments.slice(0, 100),
   };
 }
 
@@ -42,40 +100,11 @@ app.get(
     paypalClientId: paypal.clientId,
     paypalMock: paypal.mock,
     catalog: usingChannel3 ? "channel3" : "demo",
-    aiReady: Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN),
+    aiReady: aiReady(),
   })),
 );
 
-app.get("/api/state", route(snapshot));
-
-app.put(
-  "/api/rules",
-  route((req) => {
-    getState().rules = sanitizeRules(req.body);
-    save();
-    return snapshot();
-  }),
-);
-
-app.post(
-  "/api/chat",
-  route(async (req) => {
-    const message = String(req.body?.message || "").trim().slice(0, 2000);
-    if (!message) throw Object.assign(new Error("Message is empty."), { status: 400 });
-    const result = await chat(message);
-    return { ...result, state: snapshot() };
-  }),
-);
-
-app.post(
-  "/api/chat/reset",
-  route(() => {
-    resetConversation();
-    return { ok: true };
-  }),
-);
-
-// --- Link a PayPal wallet (Vault) ---------------------------------------------
+app.get("/api/overview", route(overview));
 
 app.post(
   "/api/wallet/setup-token",
@@ -98,7 +127,7 @@ app.post(
       linkedAt: new Date().toISOString(),
     };
     save();
-    return snapshot();
+    return overview();
   }),
 );
 
@@ -109,36 +138,77 @@ app.delete(
     if (wallet?.vaultId) await paypal.deletePaymentToken(wallet.vaultId).catch((e) => console.warn("unlink:", e.message));
     getState().wallet = null;
     save();
-    return snapshot();
+    return overview();
   }),
 );
-
-// --- Human approval and refunds -----------------------------------------------
-
-app.post("/api/purchases/:id/order", route(async (req) => ({ orderId: await startApproval(req.params.id) })));
 
 app.post(
-  "/api/purchases/:id/capture",
-  route(async (req) => {
-    const purchase = await completeApproval(req.params.id, String(req.body?.orderId || ""));
-    return { purchase, state: snapshot() };
+  "/api/mandates",
+  route((req) => {
+    const { mandate, token } = createMandate(req.body);
+    return {
+      mandate,
+      token,
+      mcpConfig: {
+        mcpServers: {
+          agentpass: {
+            command: "node",
+            args: [path.join(here, "mcp", "server.js")],
+            env: { AGENTPASS_URL: baseUrl(req), AGENTPASS_TOKEN: token },
+          },
+        },
+      },
+    };
   }),
 );
 
-app.post("/api/purchases/:id/decline", route((req) => ({ purchase: declinePurchase(req.params.id), state: snapshot() })));
+app.post(
+  "/api/mandates/:id/revoke",
+  route(async (req) => {
+    revokeMandate(req.params.id);
+    await releaseHolds(req.params.id);
+    return overview();
+  }),
+);
 
-app.post("/api/purchases/:id/refund", route(async (req) => ({ purchase: await refundPurchase(req.params.id), state: snapshot() })));
+app.post("/api/payments/:id/approve", route(async (req) => ({ payment: await approvePayment(req.params.id), ...overview() })));
+app.post("/api/payments/:id/decline", route(async (req) => ({ payment: await declinePayment(req.params.id), ...overview() })));
+app.post("/api/payments/:id/refund", route(async (req) => ({ payment: await refundPayment(req.params.id), ...overview() })));
 
 app.post(
   "/api/reset",
   route(() => {
     reset({ keepWallet: true });
-    return snapshot();
+    return overview();
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Errand demo agent. It calls the agent API above over HTTP, like any agent.
+// ---------------------------------------------------------------------------
+
+app.post(
+  "/api/errand/chat",
+  route(async (req) => {
+    const message = String(req.body?.message || "").trim().slice(0, 2000);
+    const token = String(req.body?.token || "");
+    if (!message) throw Object.assign(new Error("Message is empty."), { status: 400 });
+    if (!token) throw Object.assign(new Error("Paste a mandate token first."), { status: 400 });
+    return chat(message, { agentPassUrl: `http://127.0.0.1:${PORT}`, token });
+  }),
+);
+
+app.post(
+  "/api/errand/reset",
+  route(() => {
+    resetConversation();
+    return { ok: true };
   }),
 );
 
 app.listen(PORT, () => {
-  console.log(`Errand running at http://localhost:${PORT}`);
-  console.log(`  PayPal:  ${paypal.mock ? "MOCK mode (set PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET for sandbox)" : "sandbox"}`);
+  console.log(`AgentPass running at http://localhost:${PORT}  (Errand demo agent at /errand)`);
+  console.log(`  Claude:  ${aiReady() ? "ready" : "set ANTHROPIC_API_KEY (intent checks fail closed to owner review without it)"}`);
+  console.log(`  PayPal:  ${paypal.mock ? "SIMULATED (set PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET for sandbox)" : "sandbox"}`);
   console.log(`  Catalog: ${usingChannel3 ? "Channel3" : "built-in demo catalog (set CHANNEL3_API_KEY for real products)"}`);
 });

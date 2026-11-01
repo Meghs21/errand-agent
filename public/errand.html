@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Errand: a shopping agent that pays with AgentPass</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f8a4b'/%3E%3Ctext x='16' y='22' font-size='18' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo errand">E</span>
+        <div>
+          <h1>Errand</h1>
+          <p>A demo shopping agent. It pays only through its AgentPass mandate.</p>
+        </div>
+      </div>
+      <div class="pills" id="pills"></div>
+      <a class="nav-link" href="/" target="_blank" rel="noopener">Owner's AgentPass dashboard ↗</a>
+    </header>
+
+    <main class="layout">
+      <section class="chat" aria-label="Chat with Errand">
+        <form class="tokenbar" id="tokenbar">
+          <span>Mandate token</span>
+          <input id="token" placeholder="apm_… (issue one in the AgentPass dashboard)" autocomplete="off" spellcheck="false" />
+          <button class="secondary" type="submit">Use</button>
+        </form>
+        <div class="messages" id="messages"></div>
+        <form class="composer" id="composer">
+          <textarea id="input" rows="1" placeholder="e.g. Get my dad a birthday present, he loves fishing" autocomplete="off"></textarea>
+          <button type="submit" id="send" aria-label="Send">Send</button>
+        </form>
+        <div class="composer-foot">
+          <button class="link" id="new-errand" type="button">Start a new errand</button>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="card">
+          <h3>My mandate</h3>
+          <div id="mandate"><p class="hint">Paste a mandate token to see what this agent is allowed to do.</p></div>
+        </section>
+        <section class="card">
+          <h3>How this works</h3>
+          <p class="hint">Errand is an ordinary AgentPass client. It has no PayPal credentials. Every payment goes to AgentPass, which checks the mandate's limits, asks a second AI whether the purchase fits the mandate's purpose, then captures the payment, puts it on hold for the owner, or blocks it.</p>
+        </section>
+      </aside>
+    </main>
+
+    <script src="/errand.js" type="module"></script>
+  </body>
+</html>

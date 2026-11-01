@@ -1,7 +1,7 @@
 // Thin client for the PayPal REST APIs Errand uses:
 //   Vault v3      - save the user's PayPal wallet once, so the agent can pay later
-//   Orders v2     - charge the saved wallet, or create an order the user approves
-//   Payments v2   - refund a capture ("undo" in the activity log)
+//   Orders v2     - charge the saved wallet (CAPTURE) or place a hold on it (AUTHORIZE)
+//   Payments v2   - capture or void a hold, refund a capture
 // With no credentials (or PAYPAL_MOCK=1) it simulates PayPal so the UI still runs.
 
 const BASE = process.env.PAYPAL_API_BASE || "https://api-m.sandbox.paypal.com";
@@ -54,17 +54,22 @@ async function call(method, path, body, { requestId } = {}) {
 
 const money = (value, currency = "USD") => ({ currency_code: currency, value: Number(value).toFixed(2) });
 
-function purchaseUnit(purchase) {
-  const name = purchase.title.slice(0, 127);
+// A payment carries a cart: { merchant, items: [{ name, unit_price, quantity }] }.
+function purchaseUnit(payment) {
+  const currency = payment.currency || "USD";
+  const items = payment.items.map((i) => ({
+    name: String(i.name).slice(0, 127),
+    quantity: String(i.quantity),
+    unit_amount: money(i.unit_price, currency),
+    category: "PHYSICAL_GOODS",
+  }));
   return {
-    reference_id: purchase.id,
-    custom_id: purchase.id,
-    description: `Errand agent: ${name}`.slice(0, 127),
-    amount: {
-      ...money(purchase.amount, purchase.currency),
-      breakdown: { item_total: money(purchase.amount, purchase.currency) },
-    },
-    items: [{ name, quantity: "1", unit_amount: money(purchase.amount, purchase.currency), category: "PHYSICAL_GOODS" }],
+    reference_id: payment.id,
+    custom_id: payment.id,
+    description: `AgentPass: ${payment.agentName} at ${payment.merchant}`.slice(0, 127),
+    soft_descriptor: "AGENTPASS",
+    amount: { ...money(payment.amount, currency), breakdown: { item_total: money(payment.amount, currency) } },
+    items,
   };
 }
 
@@ -77,7 +82,7 @@ export async function createSetupToken({ returnUrl, cancelUrl }) {
   return call("POST", "/v3/vault/setup-tokens", {
     payment_source: {
       paypal: {
-        description: "Lets your Errand agent pay within the spending rules you set",
+        description: "Lets AI agents you authorize with AgentPass pay within their mandates",
         usage_type: "MERCHANT",
         customer_type: "CONSUMER",
         permit_multiple_payment_tokens: false,
@@ -105,28 +110,44 @@ export async function deletePaymentToken(vaultId) {
 
 // --- Orders -----------------------------------------------------------------
 
-/** Charge the saved wallet with no buyer interaction. Returns { orderId, captureId, status }. */
-export async function chargeVaultedWallet(purchase, vaultId) {
+/** Charge the saved wallet right away, no buyer interaction. Returns { orderId, captureId, status }. */
+export async function chargeVaultedWallet(payment, vaultId) {
   if (mock) return { orderId: fakeId("MOCK-ORDER-"), captureId: fakeId("MOCK-CAP-"), status: "COMPLETED" };
   const order = await call(
     "POST",
     "/v2/checkout/orders",
-    { intent: "CAPTURE", purchase_units: [purchaseUnit(purchase)], payment_source: { paypal: { vault_id: vaultId } } },
-    { requestId: `charge-${purchase.id}` },
+    { intent: "CAPTURE", purchase_units: [purchaseUnit(payment)], payment_source: { paypal: { vault_id: vaultId } } },
+    { requestId: `charge-${payment.id}` },
   );
   return { orderId: order.id, captureId: captureIdOf(order), status: order.status };
 }
 
-/** Create an order the human approves in the PayPal popup. */
-export async function createOrderForApproval(purchase) {
-  if (mock) return { id: fakeId("MOCK-ORDER-") };
-  return call("POST", "/v2/checkout/orders", { intent: "CAPTURE", purchase_units: [purchaseUnit(purchase)] }, { requestId: `order-${purchase.id}` });
+/**
+ * Place a hold on the saved wallet (intent AUTHORIZE). Funds are reserved but
+ * not taken until the owner approves (capture) or declines (void).
+ */
+export async function authorizeVaultedWallet(payment, vaultId) {
+  if (mock) return { orderId: fakeId("MOCK-ORDER-"), authorizationId: fakeId("MOCK-AUTH-"), status: "COMPLETED" };
+  const order = await call(
+    "POST",
+    "/v2/checkout/orders",
+    { intent: "AUTHORIZE", purchase_units: [purchaseUnit(payment)], payment_source: { paypal: { vault_id: vaultId } } },
+    { requestId: `hold-${payment.id}` },
+  );
+  const auth = order?.purchase_units?.[0]?.payments?.authorizations?.[0];
+  return { orderId: order.id, authorizationId: auth?.id ?? null, status: auth?.status === "CREATED" ? "COMPLETED" : order.status };
 }
 
-export async function captureOrder(orderId) {
-  if (mock) return { orderId, captureId: fakeId("MOCK-CAP-"), status: "COMPLETED" };
-  const order = await call("POST", `/v2/checkout/orders/${orderId}/capture`, {}, { requestId: `capture-${orderId}` });
-  return { orderId: order.id, captureId: captureIdOf(order), status: order.status };
+export async function captureAuthorization(authorizationId) {
+  if (mock) return { captureId: fakeId("MOCK-CAP-"), status: "COMPLETED" };
+  const cap = await call("POST", `/v2/payments/authorizations/${authorizationId}/capture`, { final_capture: true }, { requestId: `cap-${authorizationId}` });
+  return { captureId: cap.id, status: cap.status };
+}
+
+export async function voidAuthorization(authorizationId) {
+  if (mock) return { status: "VOIDED" };
+  await call("POST", `/v2/payments/authorizations/${authorizationId}/void`, undefined, { requestId: `void-${authorizationId}` });
+  return { status: "VOIDED" };
 }
 
 export async function refundCapture(captureId) {

@@ -108,20 +108,7 @@ input, textarea { font: inherit; color: inherit; }
 .product .price { font-weight: 700; }
 .product .merchant { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.purchase {
-  align-self: flex-start; width: min(460px, 100%); border-radius: 12px; padding: 12px 14px; border: 1px solid var(--border);
-  background: var(--surface); display: grid; gap: 8px;
-}
-.purchase .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.purchase .what { font-weight: 600; }
-.purchase .why { font-size: 13px; color: var(--muted); }
-.purchase .reasons { font-size: 13px; margin: 0; padding-left: 18px; }
 .badge { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
-.badge.paid, .badge.refunded { color: var(--ok); background: var(--ok-bg); }
-.badge.awaiting_approval, .badge.processing { color: var(--warn); background: var(--warn-bg); }
-.badge.denied, .badge.failed, .badge.declined { color: var(--bad); background: var(--bad-bg); }
-.purchase .actions { display: flex; flex-direction: column; gap: 8px; }
-.purchase .meta { font-size: 12px; color: var(--muted); }
 
 .composer { display: flex; gap: 10px; padding: 12px; border-top: 1px solid var(--border); }
 .composer textarea {
@@ -171,3 +158,59 @@ button.mock { background: #ffc439; color: #111; border: 0; border-radius: 8px; p
   .msg { max-width: 92%; }
   .topbar { padding: 12px 16px; flex-wrap: wrap; }
 }
+
+/* --- AgentPass dashboard --- */
+.nav-link { color: var(--accent); font-weight: 600; text-decoration: none; font-size: 14px; white-space: nowrap; }
+.layout.dash { grid-template-columns: minmax(0, 1fr) 400px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.rules textarea { border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; background: var(--surface-2); width: 100%; resize: vertical; }
+button.primary { padding: 9px 16px; }
+.rules button.primary { grid-column: 1 / -1; }
+
+.pay { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; background: var(--surface); }
+.pay.held { border-color: var(--warn); }
+.pay .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pay .who { font-size: 12px; color: var(--muted); }
+.pay .items { font-weight: 600; }
+.pay .amount { font-weight: 700; font-size: 16px; white-space: nowrap; }
+.pay .reasons { margin: 0; padding-left: 18px; font-size: 13px; }
+.pay details { font-size: 13px; }
+.pay summary { cursor: pointer; color: var(--muted); }
+.checks { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 3px; }
+.checks li::before { content: "✓ "; color: var(--ok); font-weight: 700; }
+.checks li.fail::before { content: "✗ "; color: var(--bad); }
+.verdict { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); }
+.verdict .decision { text-transform: capitalize; }
+.risk { display: inline-block; min-width: 54px; text-align: center; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 1px 8px; }
+.risk.low { color: var(--ok); background: var(--ok-bg); }
+.risk.mid { color: var(--warn); background: var(--warn-bg); }
+.risk.high { color: var(--bad); background: var(--bad-bg); }
+.ids { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--muted); word-break: break-all; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btns .primary { padding: 7px 14px; }
+.badge.captured, .badge.refunded { color: var(--ok); background: var(--ok-bg); }
+.badge.held { color: var(--warn); background: var(--warn-bg); }
+.badge.rejected { color: var(--bad); background: var(--bad-bg); }
+
+.mandate { border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: grid; gap: 6px; }
+.mandate.revoked, .mandate.expired { opacity: 0.6; }
+.mandate .purpose { font-size: 13px; color: var(--muted); }
+.mandate .limits { font-size: 12px; color: var(--muted); }
+.issued { margin-top: 12px; border: 1px dashed var(--accent); border-radius: 12px; padding: 12px; display: grid; gap: 8px; font-size: 13px; }
+.issued pre { margin: 0; padding: 8px; background: var(--surface-2); border-radius: 8px; overflow-x: auto; font-size: 11px; }
+.issued code.token { font-size: 12px; word-break: break-all; background: var(--surface-2); padding: 6px 8px; border-radius: 6px; display: block; }
+.empty { color: var(--muted); font-size: 13px; }
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; max-width: 90vw;
+  padding: 10px 14px; border-radius: 12px; background: var(--text); color: var(--bg); box-shadow: 0 4px 20px rgba(0,0,0,.2);
+}
+.toast.error { background: var(--bad); color: #fff; }
+.tokenbar { display: flex; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); align-items: center; flex-wrap: wrap; }
+.tokenbar input { flex: 1; min-width: 200px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; background: var(--surface-2); font-family: ui-monospace, monospace; font-size: 12px; }
+.tokenbar span { font-size: 12px; color: var(--muted); }
+@media (max-width: 900px) {
+  .layout.dash { grid-template-columns: minmax(0, 1fr); }
+}
+.logo.errand { background: var(--ok); }

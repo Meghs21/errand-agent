@@ -3,68 +3,78 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Errand: an AI shopping agent on a PayPal leash</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f5eff'/%3E%3Ctext x='16' y='22' font-size='18' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E" />
+    <title>AgentPass: spending permissions for AI agents</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f5eff'/%3E%3Ctext x='16' y='22' font-size='16' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EAP%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
-        <span class="logo">E</span>
+        <span class="logo">AP</span>
         <div>
-          <h1>Errand</h1>
-          <p>Hand off the shopping. Keep the purse strings.</p>
+          <h1>AgentPass</h1>
+          <p>Let AI agents pay with your PayPal. On your terms.</p>
         </div>
       </div>
       <div class="pills" id="pills"></div>
+      <a class="nav-link" href="/errand" target="_blank" rel="noopener">Open the Errand demo agent ↗</a>
     </header>
 
-    <main class="layout">
-      <section class="chat" aria-label="Chat with your agent">
-        <div class="messages" id="messages">
-          <div class="welcome" id="welcome">
-            <h2>What do you need picked up?</h2>
-            <p>Errand searches real stores, picks the best option and pays with your PayPal, but only inside the rules you set on the right.</p>
-            <div class="suggestions" id="suggestions"></div>
+    <main class="layout dash">
+      <section class="col">
+        <section class="card" id="approvals-card" hidden>
+          <h3>Needs your approval</h3>
+          <p class="hint">Funds are on hold in PayPal. Nothing is taken until you approve; declining releases the hold.</p>
+          <div id="approvals" class="stack"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h3>Agent activity</h3>
+            <span class="hint" id="activity-count"></span>
           </div>
-        </div>
-        <form class="composer" id="composer">
-          <textarea id="input" rows="1" placeholder="e.g. Get my dad a birthday gift under $60, he loves fishing" autocomplete="off"></textarea>
-          <button type="submit" id="send" aria-label="Send">Send</button>
-        </form>
-        <div class="composer-foot">
-          <button class="link" id="new-errand" type="button">Start a new errand</button>
-        </div>
+          <div id="payments" class="stack"></div>
+        </section>
       </section>
 
       <aside class="side">
-        <section class="card" id="wallet-card">
+        <section class="card">
           <h3>PayPal wallet</h3>
           <div id="wallet"></div>
         </section>
 
         <section class="card">
-          <h3>Spending leash</h3>
-          <div class="meter" id="meter">
-            <div class="meter-bar"><span id="meter-fill"></span></div>
-            <div class="meter-text" id="meter-text"></div>
+          <div class="card-head">
+            <h3>Agents you've authorized</h3>
           </div>
-          <form id="rules" class="rules">
-            <label>Monthly budget <span class="money"><b>$</b><input name="monthlyBudget" type="number" min="0" step="1" /></span></label>
-            <label>Auto-approve up to <span class="money"><b>$</b><input name="autoApproveLimit" type="number" min="0" step="1" /></span></label>
-            <label class="wide">Never buy (comma separated)<input name="blockedKeywords" type="text" /></label>
-            <button type="submit" class="secondary">Save rules</button>
-            <span class="saved" id="rules-saved" hidden>Saved</span>
-          </form>
+          <div id="mandates" class="stack"></div>
         </section>
 
         <section class="card">
-          <h3>Activity</h3>
-          <ul class="activity" id="activity"></ul>
+          <div class="card-head">
+            <h3>Grant a mandate</h3>
+            <button type="button" class="link" id="preset">Fill in the Errand demo</button>
+          </div>
+          <form id="mandate-form" class="rules">
+            <label class="wide">Agent name<input name="agentName" required placeholder="Errand" /></label>
+            <label class="wide"
+              >What may it buy? (in your words)
+              <textarea name="purpose" rows="2" required placeholder="Birthday gifts for my dad. He loves fishing and coffee."></textarea>
+            </label>
+            <label>Per purchase <span class="money"><b>$</b><input name="perPurchaseLimit" type="number" min="1" step="1" value="80" /></span></label>
+            <label>Auto-approve up to <span class="money"><b>$</b><input name="autoApproveLimit" type="number" min="0" step="1" value="40" /></span></label>
+            <label>Total budget <span class="money"><b>$</b><input name="totalLimit" type="number" min="1" step="1" value="150" /></span></label>
+            <label>Expires in (days)<input name="expiresInDays" type="number" min="1" max="365" value="30" /></label>
+            <label>Max payments a day<input name="maxPaymentsPerDay" type="number" min="1" max="100" value="5" /></label>
+            <label>Only these merchants<input name="allowedMerchants" placeholder="any" /></label>
+            <label class="wide">Never buy<input name="blockedKeywords" value="alcohol, tobacco, vape, gift card, firearm, crypto" /></label>
+            <button type="submit" class="primary">Issue mandate</button>
+          </form>
+          <div id="issued" hidden></div>
         </section>
       </aside>
     </main>
 
-    <script src="/app.js" type="module"></script>
+    <script src="/dashboard.js" type="module"></script>
   </body>
 </html>
