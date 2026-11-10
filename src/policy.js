@@ -126,6 +126,32 @@ export function checkMandate({ mandate, cart, amount, payments, walletLinked, no
   return { pass: checks.every((c) => c.pass), checks };
 }
 
+export const SPLIT_WINDOW_MINUTES = 15;
+
+/**
+ * Soft signals that don't block a payment but route it to the owner.
+ * Today: split purchases, where an agent breaks one buy into several small
+ * payments at the same merchant to stay under the auto-approve limit.
+ */
+export function reviewFlags({ mandate, cart, amount, payments, now = new Date() }) {
+  const flags = [];
+  const since = now.getTime() - SPLIT_WINDOW_MINUTES * 60_000;
+  const recent = payments.filter(
+    (p) =>
+      p.mandateId === mandate.id &&
+      p.merchant === cart.merchant &&
+      ["captured", "held", "processing"].includes(p.status) &&
+      new Date(p.createdAt).getTime() > since,
+  );
+  const combined = round2(recent.reduce((s, p) => s + p.amount, 0) + amount);
+  if (recent.length && amount <= mandate.autoApproveLimit && combined > mandate.autoApproveLimit) {
+    flags.push(
+      `Possible split purchase: $${combined.toFixed(2)} at ${cart.merchant} across ${recent.length + 1} payments in ${SPLIT_WINDOW_MINUTES} minutes, over the $${mandate.autoApproveLimit.toFixed(2)} auto-approve limit`,
+    );
+  }
+  return flags;
+}
+
 function badRequest(message) {
   return Object.assign(new Error(message), { status: 400 });
 }

@@ -214,3 +214,30 @@ button.primary { padding: 9px 16px; }
   .layout.dash { grid-template-columns: minmax(0, 1fr); }
 }
 .logo.errand { background: var(--ok); }
+
+/* gates, drafting, attack lab */
+.nav { display: flex; gap: 14px; align-items: center; }
+.gates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; }
+.gate { padding: 3px 9px; border-radius: 999px; font-weight: 600; border: 1px solid transparent; }
+.gate.ok { color: var(--ok); background: var(--ok-bg); }
+.gate.warn { color: var(--warn); background: var(--warn-bg); }
+.gate.bad { color: var(--bad); background: var(--bad-bg); }
+.gate.skip { color: var(--muted); background: var(--surface-2); border-color: var(--border); }
+.gates .arrow { color: var(--muted); }
+.pay.new { animation: popin 0.6s ease-out; }
+.pay.new .gate { animation: light 0.5s ease-out both; }
+.pay.new .gate:nth-of-type(2) { animation-delay: 0.35s; }
+.pay.new .gate:nth-of-type(3) { animation-delay: 0.7s; }
+@keyframes popin { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes light { from { opacity: 0.15; filter: grayscale(1); } to { opacity: 1; filter: none; } }
+.draft { display: grid; gap: 6px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.draft textarea { border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; background: var(--surface-2); width: 100%; resize: vertical; }
+.draft button { justify-self: start; }
+form.flash input, form.flash textarea { animation: flash 1.2s ease-out; }
+@keyframes flash { 0% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: none; } }
+.attack { display: grid; gap: 8px; }
+.attack button { text-align: left; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+.attack button:hover { border-color: var(--bad); }
+.attack button small { display: block; color: var(--muted); font-size: 12px; }
+.attack-log { display: grid; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .pay.new, .pay.new .gate, form.flash input, form.flash textarea { animation: none; } }

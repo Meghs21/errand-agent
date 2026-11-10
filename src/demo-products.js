@@ -1,6 +1,6 @@
 // Built-in catalog used when no Channel3 key is configured. Fictional
 // products, realistic prices, enough variety to demo budgets and blocks.
-const p = (id, title, brand, price, category, emoji, tags, description, merchant = "demo-store.example") => ({
+const p = (id, title, brand, price, category, emoji, tags, description, merchant = `${brand.toLowerCase().replace(/[^a-z]/g, "")}.example`) => ({
   id: `demo_${id}`,
   title,
   brand,

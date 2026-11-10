@@ -6,6 +6,7 @@ import * as paypal from "./src/paypal.js";
 import { createMandate, revokeMandate, listMandates, mandateForToken, publicMandate } from "./src/mandates.js";
 import { requestPayment, approvePayment, declinePayment, refundPayment, releaseHolds, agentView } from "./src/payments.js";
 import { chat, resetConversation } from "./src/agent.js";
+import { draftMandate } from "./src/drafter.js";
 import { usingChannel3 } from "./src/catalog.js";
 import { getState, save, reset } from "./src/store.js";
 
@@ -15,8 +16,25 @@ app.use(express.json({ limit: "100kb" }));
 app.use(express.static(path.join(here, "public"), { extensions: ["html"] }));
 
 const PORT = Number(process.env.PORT) || 3000;
-const baseUrl = (req) => process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`;
+const baseUrl = (req) => process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get("host")}`;
+// On a shared hosted demo, cap the calls that spend AI credits.
+const PUBLIC_DEMO = process.env.PUBLIC_DEMO === "1" || Boolean(process.env.RENDER);
+
 const aiReady = () => Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+
+// Simple per-IP limiter for the hosted demo: `max` requests per hour per bucket.
+const hits = new Map();
+const limit = (bucket, max) => (req, res, next) => {
+  if (!PUBLIC_DEMO) return next();
+  const key = `${bucket}:${req.ip}`;
+  const now = Date.now();
+  const recent = (hits.get(key) || []).filter((t) => now - t < 3600_000);
+  if (recent.length >= max) return res.status(429).json({ error: "Demo rate limit reached. Try again in a bit." });
+  recent.push(now);
+  hits.set(key, recent);
+  next();
+};
+if (PUBLIC_DEMO) app.set("trust proxy", 1);
 
 // Wrap async handlers so errors become JSON instead of crashing the process.
 const route = (fn) => async (req, res) => {
@@ -63,6 +81,7 @@ app.get(
 
 app.post(
   "/v1/payments",
+  limit("pay", 60),
   route(async (req, res) => {
     const mandate = requireMandate(req);
     const key = req.get("idempotency-key")?.slice(0, 200);
@@ -101,6 +120,7 @@ app.get(
     paypalMock: paypal.mock,
     catalog: usingChannel3 ? "channel3" : "demo",
     aiReady: aiReady(),
+    publicDemo: PUBLIC_DEMO,
   })),
 );
 
@@ -153,12 +173,22 @@ app.post(
         mcpServers: {
           agentpass: {
             command: "node",
-            args: [path.join(here, "mcp", "server.js")],
+            args: [process.env.RENDER ? "/path/to/agentpass/mcp/server.js" : path.join(here, "mcp", "server.js")],
             env: { AGENTPASS_URL: baseUrl(req), AGENTPASS_TOKEN: token },
           },
         },
       },
     };
+  }),
+);
+
+app.post(
+  "/api/mandates/draft",
+  limit("ai", 30),
+  route(async (req) => {
+    const text = String(req.body?.text || "").trim();
+    if (text.length < 10) throw Object.assign(new Error("Describe what the agent may buy, with any limits."), { status: 400 });
+    return draftMandate(text);
   }),
 );
 
@@ -189,6 +219,7 @@ app.post(
 
 app.post(
   "/api/errand/chat",
+  limit("ai", 30),
   route(async (req) => {
     const message = String(req.body?.message || "").trim().slice(0, 2000);
     const token = String(req.body?.token || "");

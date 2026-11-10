@@ -106,6 +106,45 @@ async function revoke(m) {
   toast(`${m.agentName} can no longer pay.`);
 }
 
+$("draft-btn").addEventListener("click", async () => {
+  const btn = $("draft-btn");
+  const text = $("draft-text").value.trim();
+  if (!text) return toast("Describe the permission first.", true);
+  btn.disabled = true;
+  btn.textContent = "Drafting…";
+  try {
+    const d = await api("/api/mandates/draft", { method: "POST", body: { text } });
+    const f = $("mandate-form");
+    f.agentName.value = d.agentName;
+    f.purpose.value = d.purpose;
+    f.perPurchaseLimit.value = d.perPurchaseLimit;
+    f.autoApproveLimit.value = d.autoApproveLimit;
+    f.totalLimit.value = d.totalLimit;
+    f.expiresInDays.value = d.expiresInDays;
+    f.maxPaymentsPerDay.value = d.maxPaymentsPerDay;
+    f.allowedMerchants.value = d.allowedMerchants.join(", ");
+    const blocked = new Set(f.blockedKeywords.value.split(",").map((k) => k.trim()).filter(Boolean));
+    d.extraBlockedKeywords.forEach((k) => blocked.add(k.toLowerCase()));
+    f.blockedKeywords.value = [...blocked].join(", ");
+    f.classList.add("flash");
+    setTimeout(() => f.classList.remove("flash"), 1200);
+    toast("Drafted. Check the limits, then issue the mandate.");
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "✨ Draft with AI";
+  }
+});
+
+$("reset-demo").addEventListener("click", async () => {
+  if (!confirm("Clear all mandates and payments? Your linked PayPal stays linked.")) return;
+  data = await api("/api/reset", { method: "POST" });
+  $("issued").hidden = true;
+  lastPaymentsKey = null;
+  render();
+});
+
 $("preset").addEventListener("click", () => {
   const f = $("mandate-form");
   f.agentName.value = "Errand";
@@ -167,6 +206,39 @@ function showIssued({ mandate, token, mcpConfig }) {
 
 const riskClass = (r) => (r >= 60 ? "high" : r >= 30 ? "mid" : "low");
 
+// The three gates every payment passes through, as a row of lit-up chips.
+function gates(p) {
+  const limitsOk = p.checks.length > 0 && p.checks.every((c) => c.pass);
+  const failedLimit = p.checks.find((c) => !c.pass);
+  const v = p.verdict;
+  const ai = !v
+    ? ["skip", limitsOk ? "AI check…" : "AI check skipped"]
+    : v.decision === "approve"
+      ? ["ok", "AI: fits purpose"]
+      : v.decision === "reject"
+        ? ["bad", "AI: rejected"]
+        : ["warn", "AI: needs review"];
+  const pp = {
+    captured: ["ok", p.approvedBy === "owner" ? "PayPal: captured after your OK" : "PayPal: captured"],
+    held: ["warn", "PayPal: authorized, on hold"],
+    declined: ["skip", "PayPal: hold voided"],
+    refunded: ["skip", "PayPal: refunded"],
+    rejected: ["skip", "PayPal: not charged"],
+    failed: ["bad", "PayPal: error"],
+    processing: ["skip", "PayPal…"],
+  }[p.status] || ["skip", "PayPal"];
+  const chip = ([cls, text]) => el("span", { class: `gate ${cls}` }, text);
+  return el(
+    "div",
+    { class: "gates" },
+    chip(limitsOk ? ["ok", "Limits passed"] : ["bad", failedLimit ? `Limit: ${failedLimit.name.replace(/_/g, " ")}` : "Limits"]),
+    el("span", { class: "arrow" }, "→"),
+    chip(ai),
+    el("span", { class: "arrow" }, "→"),
+    chip(pp),
+  );
+}
+
 function paymentCard(p, { actions }) {
   const items = p.items.map((i) => (i.quantity > 1 ? `${i.quantity} × ${i.name}` : i.name)).join(", ");
   const details = el(
@@ -211,9 +283,10 @@ function paymentCard(p, { actions }) {
 
   return el(
     "div",
-    { class: `pay ${p.status}` },
+    { class: `pay ${p.status}${seen.has(p.id) ? "" : " new"}`, "data-id": p.id },
     el("div", { class: "row" }, el("span", { class: "who" }, `${p.agentName} → ${p.merchant} · ${ago(p.createdAt)}`), el("span", { class: `badge ${p.status}` }, STATUS_LABEL[p.status] || p.status)),
     el("div", { class: "row" }, el("span", { class: "items" }, items), el("span", { class: "amount" }, money(p.amount))),
+    gates(p),
     p.status !== "captured" && p.reasons.length ? el("ul", { class: "reasons" }, p.reasons.map((r) => el("li", {}, r))) : null,
     details,
     btns.childElementCount ? btns : null,
@@ -233,6 +306,7 @@ async function act(p, action) {
 }
 
 let lastPaymentsKey = null;
+const seen = new Set(); // payment ids already shown, so only new ones animate in
 function renderPayments() {
   // Don't rebuild while nothing changed, so open "Why" sections stay open.
   const key = JSON.stringify(data.payments.map((p) => [p.id, p.status]));
@@ -250,6 +324,8 @@ function renderPayments() {
       ? rest.map((p) => paymentCard(p, { actions: false }))
       : [el("p", { class: "empty" }, "When an agent asks to pay, every request shows up here with the checks it passed or failed.")]),
   );
+  // Mark everything rendered as seen after this paint, so the next refresh doesn't re-animate it.
+  requestAnimationFrame(() => data.payments.forEach((p) => seen.add(p.id)));
 }
 
 function render() {

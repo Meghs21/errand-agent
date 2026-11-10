@@ -1,11 +1,12 @@
 // The payment pipeline every agent request goes through:
 //   1. hard mandate checks (policy.js)       -> reject on any failure
 //   2. AI intent check (verifier.js)          -> reject / hold / allow
+//      plus soft flags such as split purchases -> hold
 //   3. PayPal: capture now (small, approved) or authorize-and-hold (owner decides)
 // Each request is recorded with its checks and verdict, so the owner can see
 // exactly why money did or didn't move.
 import * as paypal from "./paypal.js";
-import { checkMandate, sanitizeCart } from "./policy.js";
+import { checkMandate, reviewFlags, sanitizeCart } from "./policy.js";
 import { verifyIntent } from "./verifier.js";
 import { findMandate } from "./mandates.js";
 import { getState, save, newId } from "./store.js";
@@ -58,8 +59,10 @@ export async function requestPayment({ mandate, cartInput, idempotencyKey }) {
   }
 
   const overAuto = amount > mandate.autoApproveLimit;
-  const hold = overAuto || payment.verdict.decision === "needs_review";
-  const reasons = [];
+  const flags = reviewFlags({ mandate, cart, amount, payments: state.payments.filter((p) => p.id !== payment.id), now });
+  payment.flags = flags;
+  const hold = overAuto || flags.length > 0 || payment.verdict.decision === "needs_review";
+  const reasons = [...flags];
   if (overAuto) reasons.push(`$${amount.toFixed(2)} is above this agent's $${mandate.autoApproveLimit.toFixed(2)} auto-approve limit`);
   if (payment.verdict.decision === "needs_review") reasons.push(...payment.verdict.reasons);
 

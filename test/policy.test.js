@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkMandate, sanitizeCart, sanitizeMandateInput } from "../src/policy.js";
+import { checkMandate, reviewFlags, sanitizeCart, sanitizeMandateInput } from "../src/policy.js";
 
 const now = new Date("2026-11-01T12:00:00Z");
 const mandate = (over = {}) => ({
@@ -65,4 +65,15 @@ test("mandate input clamps limits so auto <= per-purchase <= total", () => {
   assert.equal(m.perPurchaseLimit, 30);
   assert.equal(m.autoApproveLimit, 30);
   assert.throws(() => sanitizeMandateInput({ agentName: "", purpose: "x" }), /name/);
+});
+
+test("split-purchase flag needs the same merchant inside the window and a combined total over the auto limit", () => {
+  const m = mandate();
+  const prior = (amount, merchant = "rei.com", createdAt = "2026-11-01T11:55:00Z") => ({ mandateId: "m1", merchant, amount, status: "captured", createdAt });
+  const flags = (c, payments) => reviewFlags({ mandate: m, ...c, payments, now });
+  assert.equal(flags(cart(25), [prior(20)]).length, 1);
+  assert.equal(flags(cart(15), [prior(20)]).length, 0); // 35 <= 40
+  assert.equal(flags(cart(25), [prior(20, "other.com")]).length, 0);
+  assert.equal(flags(cart(25), [prior(20, "rei.com", "2026-11-01T11:30:00Z")]).length, 0); // outside 15 min
+  assert.equal(flags(cart(45), [prior(20)]).length, 0); // already over auto limit on its own
 });

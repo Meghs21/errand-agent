@@ -43,6 +43,12 @@
           <div id="mandate"><p class="hint">Paste a mandate token to see what this agent is allowed to do.</p></div>
         </section>
         <section class="card">
+          <h3>Attack lab</h3>
+          <p class="hint">Pretend Errand has been compromised. These send raw requests to AgentPass with this agent's token, the way a hijacked or manipulated agent would.</p>
+          <div class="attack" id="attacks"></div>
+          <div class="attack-log" id="attack-log"></div>
+        </section>
+        <section class="card">
           <h3>How this works</h3>
           <p class="hint">Errand is an ordinary AgentPass client. It has no PayPal credentials. Every payment goes to AgentPass, which checks the mandate's limits, asks a second AI whether the purchase fits the mandate's purpose, then captures the payment, puts it on hold for the owner, or blocks it.</p>
         </section>

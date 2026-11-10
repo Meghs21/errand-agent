@@ -17,7 +17,10 @@
         </div>
       </div>
       <div class="pills" id="pills"></div>
-      <a class="nav-link" href="/errand" target="_blank" rel="noopener">Open the Errand demo agent ↗</a>
+      <div class="nav">
+        <button type="button" class="link" id="reset-demo" title="Clear all mandates and payments">Reset demo</button>
+        <a class="nav-link" href="/errand" target="_blank" rel="noopener">Open the Errand demo agent ↗</a>
+      </div>
     </header>
 
     <main class="layout dash">
@@ -54,6 +57,11 @@
           <div class="card-head">
             <h3>Grant a mandate</h3>
             <button type="button" class="link" id="preset">Fill in the Errand demo</button>
+          </div>
+          <div class="draft">
+            <label for="draft-text" class="hint">Describe it in your own words and let AI fill in the form:</label>
+            <textarea id="draft-text" rows="2" placeholder="Let Errand buy birthday gifts for my dad, he loves fishing and coffee. Max $80 each, $150 total, ask me above $40, for two weeks."></textarea>
+            <button type="button" class="secondary" id="draft-btn">✨ Draft with AI</button>
           </div>
           <form id="mandate-form" class="rules">
             <label class="wide">Agent name<input name="agentName" required placeholder="Errand" /></label>
