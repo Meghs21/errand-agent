@@ -18,11 +18,26 @@ function fresh() {
 let state = load();
 
 function load() {
+  let s;
   try {
-    return { ...fresh(), ...JSON.parse(fs.readFileSync(FILE, "utf8")) };
+    s = { ...fresh(), ...JSON.parse(fs.readFileSync(FILE, "utf8")) };
   } catch {
-    return fresh();
+    s = fresh();
   }
+  // Hosted demos lose their disk on restart. A saved PayPal wallet id in the
+  // environment keeps the demo wallet linked anyway.
+  if (!s.wallet && process.env.PAYPAL_DEMO_VAULT_ID) s.wallet = envWallet();
+  return s;
+}
+
+function envWallet() {
+  return {
+    vaultId: process.env.PAYPAL_DEMO_VAULT_ID,
+    customerId: null,
+    email: process.env.PAYPAL_DEMO_EMAIL || "PayPal sandbox buyer",
+    linkedAt: new Date().toISOString(),
+    fromEnv: true,
+  };
 }
 
 export function save() {

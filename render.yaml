@@ -22,3 +22,7 @@ services:
         sync: false
       - key: CHANNEL3_API_KEY
         sync: false
+      # After you link PayPal on the hosted site, copy the id from the logs here
+      # so the demo wallet stays linked when the free server restarts.
+      - key: PAYPAL_DEMO_VAULT_ID
+        sync: false

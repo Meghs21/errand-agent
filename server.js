@@ -149,6 +149,7 @@ app.post(
       linkedAt: new Date().toISOString(),
     };
     save();
+    if (PUBLIC_DEMO) console.log(`Wallet linked. To keep it linked across restarts, set PAYPAL_DEMO_VAULT_ID=${pt.id}`);
     return overview();
   }),
 );
@@ -157,7 +158,8 @@ app.delete(
   "/api/wallet",
   route(async () => {
     const { wallet } = getState();
-    if (wallet?.vaultId) await paypal.deletePaymentToken(wallet.vaultId).catch((e) => console.warn("unlink:", e.message));
+    // Keep the hosted demo's saved wallet in PayPal so a visitor's Unlink can't break it for everyone.
+    if (wallet?.vaultId && !wallet.fromEnv) await paypal.deletePaymentToken(wallet.vaultId).catch((e) => console.warn("unlink:", e.message));
     getState().wallet = null;
     save();
     return overview();
