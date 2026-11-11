@@ -38,7 +38,8 @@ export function sanitizeMandateInput(input = {}, now = new Date()) {
     autoApproveLimit,
     maxPaymentsPerDay,
     blockedKeywords: list(input.blockedKeywords, [...DEFAULT_BLOCKED]),
-    allowedMerchants: list(input.allowedMerchants, []),
+    // Only real shop domains restrict anything; words like "any" or "fishing stores" would block every shop.
+    allowedMerchants: list(input.allowedMerchants, []).filter((m) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(m)),
     currency: "USD",
     expiresAt: new Date(now.getTime() + days * 86400_000).toISOString(),
   };
