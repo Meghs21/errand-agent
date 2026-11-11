@@ -34,7 +34,7 @@ Card networks and wallets are all working on "agent authorization": how a person
 | **Split purchase**: one $45 order sent as three $15 payments to slip under the $40 auto-approve limit | Paid, paid, **On hold** | AgentPass sums recent payments to the same merchant (15-minute window) and holds the one that crosses the limit |
 | **Forged token** | **401** | Tokens are stored only as SHA-256 hashes and compared in constant time |
 
-Every request on the dashboard shows a row of three gates (**Limits → AI check → PayPal**) that light up as it passes through.
+The dashboard has four pages: **Home** (what needs your approval, totals and recent activity), **Activity** (every request, filterable, with the full reasoning one click away), **Agents** (each mandate, its budget and a revoke button) and **Wallet**. Every request shows a row of three gates (**Limits → AI check → PayPal**) that light up as it passes through.
 
 ## How PayPal is used
 
@@ -163,8 +163,8 @@ The repo includes a Render Blueprint (`render.yaml`). In Render, choose **New �
 
 ## Demo script
 
-1. Open the dashboard, click **Link PayPal**, log in with the sandbox buyer.
-2. Type the permission in plain English and click **Draft with AI** (or click **Fill in the Errand demo**), then **Issue mandate**. Copy the token, or click **Use it in Errand**.
+1. Open the dashboard. The Home page walks you through three steps. Click **Link PayPal** and log in with the sandbox buyer.
+2. Click **New mandate**, type the permission in plain English and click **Draft with AI** (or click **Fill in the Errand demo**), then **Issue mandate**. Copy the token, or click **Use it in Errand**.
 3. In Errand, run the four suggestions in order. Watch each one land on the dashboard: paid, on hold, blocked by the AI check, blocked by the rules. Expand **Why** to see every check and the AI's reasoning.
 4. Approve the held grinder. PayPal captures the authorization.
 5. In Errand's **Attack lab**, run the prompt injection, split purchase and forged token attacks, and watch each one get stopped.
