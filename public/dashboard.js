@@ -169,7 +169,7 @@ function renderMandates() {
           el("li", {}, "Never more than ", el("b", {}, money(m.perPurchaseLimit)), " at once"),
           el("li", {}, active ? `Ends ${new Date(m.expiresAt).toLocaleDateString()}` : "No longer works"),
         ),
-        active ? el("div", { class: "btns" }, el("button", { class: "danger", onclick: () => revoke(m) }, "Revoke now")) : null,
+        active ? el("div", { class: "btns" }, el("button", { class: "kill", onclick: () => revoke(m) }, "⏻ Revoke now")) : null,
       );
     }),
   );
