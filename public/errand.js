@@ -158,8 +158,16 @@ function welcome() {
   );
 }
 
+// After the welcome screen goes, keep the demo prompts one click away as chips.
+function renderQuick() {
+  $("quick").replaceChildren(...SUGGESTIONS.map(([text]) => el("button", { type: "button", title: text, onclick: () => send(text) }, text)));
+}
+
 function addToChat(node) {
-  $("welcome")?.remove();
+  if ($("welcome")) {
+    $("welcome").remove();
+    $("quick").hidden = false;
+  }
   $("messages").append(node);
   node.scrollIntoView({ behavior: "smooth", block: "end" });
   return node;
@@ -238,12 +246,14 @@ $("input").addEventListener("keydown", (e) => {
 async function newErrand() {
   await api("/api/errand/reset", { method: "POST" });
   $("messages").replaceChildren(welcome());
+  $("quick").hidden = true;
 }
 $("new-errand").addEventListener("click", newErrand);
 
 (async function boot() {
   renderPills(await api("/api/config"), $("pills"));
   renderAttacks();
+  renderQuick();
   await newErrand();
   await setToken(readToken());
 })();

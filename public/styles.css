@@ -241,3 +241,9 @@ form.flash input, form.flash textarea { animation: flash 1.2s ease-out; }
 .attack button small { display: block; color: var(--muted); font-size: 12px; }
 .attack-log { display: grid; gap: 8px; }
 @media (prefers-reduced-motion: reduce) { .pay.new, .pay.new .gate, form.flash input, form.flash textarea { animation: none; } }
+
+.quick { display: flex; gap: 6px; overflow-x: auto; padding: 8px 12px 0; border-top: 1px solid var(--border); }
+.quick[hidden] { display: none; }
+.quick button { flex: none; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; }
+.quick button:hover { border-color: var(--accent); }
+.quick + .composer { border-top: 0; }
