@@ -9,6 +9,7 @@ import { chat, resetConversation } from "./src/agent.js";
 import { draftMandate } from "./src/drafter.js";
 import { usingChannel3 } from "./src/catalog.js";
 import { getState, save, reset } from "./src/store.js";
+import { aiReady, aiName } from "./src/llm.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -20,7 +21,7 @@ const baseUrl = (req) => process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_U
 // On a shared hosted demo, cap the calls that spend AI credits.
 const PUBLIC_DEMO = process.env.PUBLIC_DEMO === "1" || Boolean(process.env.RENDER);
 
-const aiReady = () => Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+
 
 // Simple per-IP limiter for the hosted demo: `max` requests per hour per bucket.
 const hits = new Map();
@@ -120,6 +121,7 @@ app.get(
     paypalMock: paypal.mock,
     catalog: usingChannel3 ? "channel3" : "demo",
     aiReady: aiReady(),
+    aiName: aiName(),
     publicDemo: PUBLIC_DEMO,
   })),
 );
@@ -239,7 +241,7 @@ app.post(
 
 app.listen(PORT, () => {
   console.log(`AgentPass running at http://localhost:${PORT}  (Errand demo agent at /errand)`);
-  console.log(`  Claude:  ${aiReady() ? "ready" : "set ANTHROPIC_API_KEY (intent checks fail closed to owner review without it)"}`);
+  console.log(`  AI:      ${aiName()} ${aiReady() ? "ready" : `(set ${aiName() === "Groq" ? "GROQ_API_KEY" : "ANTHROPIC_API_KEY"}; intent checks fail closed to owner review without it)`}`);
   console.log(`  PayPal:  ${paypal.mock ? "SIMULATED (set PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET for sandbox)" : "sandbox"}`);
   console.log(`  Catalog: ${usingChannel3 ? "Channel3" : "built-in demo catalog (set CHANNEL3_API_KEY for real products)"}`);
 });

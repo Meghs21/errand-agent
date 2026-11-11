@@ -2,18 +2,18 @@
 // It is deliberately an ordinary AgentPass client. It holds a mandate token,
 // never PayPal credentials, and talks to AgentPass over the same HTTP API any
 // third-party agent would use. AgentPass decides whether money moves.
-import Anthropic from "@anthropic-ai/sdk";
+import { makeClient, modelFor } from "./llm.js";
 import { searchProducts } from "./catalog.js";
 import { agentPassClient } from "./agentpass-client.js";
 import { getState, save } from "./store.js";
 
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+const model = () => modelFor(process.env.ANTHROPIC_MODEL || "claude-opus-5-5");
 const EFFORT = process.env.ANTHROPIC_EFFORT || "medium";
 const MAX_STEPS = 12;
 
 let client = null;
 export const _setClientForTests = (c) => (client = c);
-const anthropic = () => (client ??= new Anthropic());
+const anthropic = () => (client ??= makeClient());
 
 const SYSTEM = `You are Errand, a personal shopping agent. The user hands you errands ("get me...", "find a gift for...", "we're out of...") and you get them done: find good options, pick the best one, and pay for it.
 
@@ -140,7 +140,7 @@ export async function chat(userText, { agentPassUrl, token }) {
   try {
     for (let step = 0; step < MAX_STEPS; step++) {
       const response = await anthropic().beta.messages.create({
-        model: MODEL,
+        model: model(),
         max_tokens: 16000,
         system: SYSTEM,
         tools: TOOLS,

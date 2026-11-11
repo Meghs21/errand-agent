@@ -52,6 +52,7 @@ Every request on the dashboard shows a row of three gates (**Limits → AI check
 - **Intent verifier** (`src/verifier.js`): Claude Opus 5.5 (`claude-opus-5-5`, effort `low`) with **structured outputs** returns `{ decision: approve | needs_review | reject, risk_score, reasons }`. It only judges purpose fit; limits are enforced in code. Cart text is treated as untrusted data, and signs of prompt injection are grounds for rejection. **It fails closed**: if the check errors or refuses, the payment is held for the owner rather than allowed.
 - **Errand, the demo agent** (`src/agent.js`): Claude Opus 5.5 with tool use (`search_products`, `get_mandate`, `pay_for_product`, `check_payment`). It's an ordinary AgentPass client: it holds a mandate token and calls the HTTP API like any third-party agent would. It has no PayPal credentials. Server-side refusal fallback (`fallbacks: "default"`) is enabled.
 - **Plain-English mandates** (`src/drafter.js`): the owner types "Let Errand buy birthday gifts for my dad, max $80 each, $150 total, ask me above $40, for two weeks" and Claude fills in the mandate form with structured outputs. The owner still reviews and issues it; the AI never grants spending on its own.
+- **Claude or Groq.** Claude is the default. Set `GROQ_API_KEY` instead (Groq has a free tier) and the same three AI parts run on Groq's `openai/gpt-oss-120b` with strict JSON-schema outputs. `src/llm.js` translates between the two APIs, so nothing else changes.
 - Product data comes from **[Channel3](https://trychannel3.com)** (100M+ products across 25k+ retailers) when a key is set, otherwise a built-in demo catalog.
 
 ## Architecture
@@ -145,7 +146,7 @@ npm start                # dashboard at http://localhost:3000, Errand at http://
 
 | Variable | Needed? | Where to get it |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Yes, for the intent check and Errand. Without it, every payment fails closed to "needs your OK". | [console.anthropic.com](https://console.anthropic.com) |
+| `ANTHROPIC_API_KEY` **or** `GROQ_API_KEY` | One of them, for the intent check, drafting and Errand. Without either, every payment fails closed to "needs your OK". | [console.anthropic.com](https://console.anthropic.com) or [console.groq.com/keys](https://console.groq.com/keys) (free tier) |
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | Optional. Without them PayPal is simulated and buttons say "(simulated)". | [Developer Dashboard](https://developer.paypal.com/dashboard/applications/sandbox) → Apps & Credentials → Sandbox |
 | `CHANNEL3_API_KEY` | Optional. Without it Errand uses the demo catalog. | [trychannel3.com/developers](https://trychannel3.com/developers) (promo `PAYPAL-HACKATHON-2026`) |
 

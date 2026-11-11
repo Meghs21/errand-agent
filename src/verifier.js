@@ -3,15 +3,15 @@
 // reads the owner's plain-English purpose and the cart and decides whether
 // the purchase belongs. It fails closed: if the check can't run, the payment
 // is held for the owner instead of going through.
-import Anthropic from "@anthropic-ai/sdk";
+import { makeClient, modelFor } from "./llm.js";
 import { z } from "zod";
 
-const MODEL = process.env.VERIFIER_MODEL || process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+const model = () => modelFor(process.env.VERIFIER_MODEL || process.env.ANTHROPIC_MODEL || "claude-opus-5-5");
 const EFFORT = process.env.VERIFIER_EFFORT || "low";
 
 let client = null;
 export const _setVerifierClientForTests = (c) => (client = c);
-const anthropic = () => (client ??= new Anthropic());
+const anthropic = () => (client ??= makeClient());
 
 // Sent to the API as the structured-output schema; Verdict re-validates the result.
 const VERDICT_SCHEMA = {
@@ -47,7 +47,7 @@ export async function verifyIntent({ mandate, cart, amount }) {
   const cartText = JSON.stringify({ merchant: cart.merchant, total_usd: amount, items: cart.items, agent_says: cart.description }, null, 2);
   try {
     const response = await anthropic().messages.create({
-      model: MODEL,
+      model: model(),
       max_tokens: 4000,
       system: SYSTEM,
       output_config: { effort: EFFORT, format: { type: "json_schema", schema: VERDICT_SCHEMA } },
@@ -63,7 +63,7 @@ export async function verifyIntent({ mandate, cart, amount }) {
     if (!parsed?.success) {
       return failClosed("The intent check couldn't produce a verdict, so this needs your OK.");
     }
-    return { ...parsed.data, model: MODEL };
+    return { ...parsed.data, model: model() };
   } catch (err) {
     console.warn("intent check failed:", err.message);
     return failClosed("The intent check was unavailable, so this needs your OK.");

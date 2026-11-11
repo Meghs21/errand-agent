@@ -35,7 +35,7 @@ export function toast(text, isError = false) {
 
 export function renderPills(config, target) {
   const pills = [
-    [config.aiReady ? "Claude connected" : "Claude: add ANTHROPIC_API_KEY", config.aiReady],
+    [config.aiReady ? `${config.aiName || "Claude"} connected` : `${config.aiName || "Claude"}: add API key`, config.aiReady],
     [config.paypalMock ? "PayPal: simulated" : "PayPal sandbox", !config.paypalMock],
     [config.catalog === "channel3" ? "Channel3 catalog" : "Demo catalog", config.catalog === "channel3"],
   ];

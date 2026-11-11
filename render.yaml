@@ -1,6 +1,6 @@
 # One-click deploy: Render dashboard → New → Blueprint → pick this repo.
 # Fill in the keys when prompted. Without PayPal keys the demo runs with
-# simulated PayPal; without an Anthropic key, payments fail closed to review.
+# simulated PayPal; without an Anthropic or Groq key, payments fail closed to review.
 services:
   - type: web
     name: agentpass
@@ -13,6 +13,8 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
         sync: false
       - key: PAYPAL_CLIENT_ID
         sync: false
