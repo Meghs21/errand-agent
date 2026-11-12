@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://agentpass-2vly.onrender.com"><b>▶ Try the live demo</b></a> ·
   <a href="#screenshots">Screenshots</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#run-it">Run it</a> ·
@@ -164,6 +165,9 @@ npm start                # http://localhost:3000 (landing), /dashboard (owner), 
 | `CHANNEL3_API_KEY` | Optional. Without it Errand uses the demo catalog. | [trychannel3.com/developers](https://trychannel3.com/developers) (promo `PAYPAL-HACKATHON-2026`) |
 
 ### Deploy to Render (hosted demo)
+
+A hosted copy runs at **https://agentpass-2vly.onrender.com** (PayPal sandbox; the free server sleeps when idle, so the first visit can take about 30 seconds).
+
 
 The repo includes a Render Blueprint (`render.yaml`). In Render, choose **New → Blueprint**, pick this repo, and fill in the secret env vars it asks for. On Render the app turns on per-IP rate limits for the AI and payment endpoints, and the dashboard's **Reset demo** button clears mandates and payments between visitors (the linked wallet stays). The free plan's disk is temporary, so state resets on redeploy.
 
