@@ -196,7 +196,7 @@ function paymentCard(p) {
     el("div", { class: "row" }, el("span", { class: "items" }, p.title), el("span", { class: `badge ${p.status}` }, STATUS_LABEL[p.status] || p.status)),
     el("div", { class: "row" }, el("span", { class: "who" }, `AgentPass → ${p.merchant}`), el("span", { class: "amount" }, money(p.amount))),
     p.status !== "captured" && p.reasons?.length ? el("ul", { class: "reasons" }, p.reasons.map((r) => el("li", {}, r))) : null,
-    p.status === "held" ? el("a", { class: "nav-link", href: "/", target: "_blank" }, "Approve in the AgentPass dashboard ↗") : null,
+    p.status === "held" ? el("a", { class: "nav-link", href: "/dashboard", target: "_blank" }, "Approve in the AgentPass dashboard ↗") : null,
     p.paypal_order_id ? el("div", { class: "ids" }, `PayPal order ${p.paypal_order_id} · ${p.payment_id}`) : null,
   );
 }

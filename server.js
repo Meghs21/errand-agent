@@ -131,7 +131,7 @@ app.get("/api/overview", route(overview));
 app.post(
   "/api/wallet/setup-token",
   route(async (req) => {
-    const token = await paypal.createSetupToken({ returnUrl: `${baseUrl(req)}/?linked=1`, cancelUrl: `${baseUrl(req)}/?linked=0` });
+    const token = await paypal.createSetupToken({ returnUrl: `${baseUrl(req)}/dashboard?linked=1`, cancelUrl: `${baseUrl(req)}/dashboard?linked=0` });
     return { id: token.id };
   }),
 );

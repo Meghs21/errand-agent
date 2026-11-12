@@ -154,7 +154,7 @@ git clone https://github.com/Meghs21/errand-agent.git agentpass
 cd agentpass
 npm install
 cp .env.example .env     # fill in the keys below
-npm start                # dashboard at http://localhost:3000, Errand at http://localhost:3000/errand
+npm start                # http://localhost:3000 (landing), /dashboard (owner), /errand (demo agent)
 ```
 
 | Variable | Needed? | Where to get it |
@@ -176,7 +176,7 @@ The repo includes a Render Blueprint (`render.yaml`). In Render, choose **New â†
 
 ## Demo script
 
-1. Open the dashboard. The Home page walks you through three steps. Click **Link PayPal** and log in with the sandbox buyer.
+1. Open http://localhost:3000 and click **Try the live demo** (or go straight to `/dashboard`). The Home page walks you through three steps. Click **Link PayPal** and log in with the sandbox buyer.
 2. Click **New mandate**, type the permission in plain English and click **Draft with AI** (or click **Fill in the Errand demo**), then **Issue mandate**. Copy the token, or click **Use it in Errand**.
 3. In Errand, run the four suggestions in order. Watch each one land on the dashboard: paid, on hold, blocked by the AI check, blocked by the rules. Expand **Why** to see every check and the AI's reasoning.
 4. Approve the held grinder. PayPal captures the authorization.

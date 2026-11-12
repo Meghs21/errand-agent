@@ -3,114 +3,143 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AgentPass: spending permissions for AI agents</title>
+    <title>AgentPass: let AI agents pay with your PayPal</title>
+    <meta name="description" content="Give any AI agent a limited, revocable key to your PayPal. Hard limits, an independent AI purpose check, and real PayPal holds you approve." />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f5eff'/%3E%3Ctext x='16' y='22' font-size='16' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EAP%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="/styles.css" />
+    <style>
+      body.landing { background: var(--bg); color: var(--text); margin: 0; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.55; }
+      .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+      .lnav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; }
+      .lnav .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; }
+      .lnav .logo { width: 36px; height: 36px; border-radius: 10px; background: #1f5eff; color: #fff; display: grid; place-items: center; font-size: 15px; font-weight: 800; }
+      .lnav nav { display: flex; align-items: center; gap: 22px; font-size: 15px; }
+      .lnav nav a { color: var(--muted); text-decoration: none; }
+      .lnav nav a:hover { color: var(--text); }
+      .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 12px; font-weight: 700; font-size: 16px; text-decoration: none; border: 1px solid transparent; }
+      .btn.primary { background: #1f5eff; color: #fff; }
+      .btn.primary:hover { background: #1a4fd8; }
+      .btn.ghost { border-color: var(--border); color: var(--text); background: var(--surface); }
+      .lnav .btn { padding: 9px 16px; font-size: 15px; }
+      .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding: 56px 0 72px; }
+      .eyebrow { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--surface-2); padding: 6px 12px; border-radius: 999px; }
+      .hero h1 { font-size: clamp(36px, 5vw, 58px); line-height: 1.05; letter-spacing: -0.03em; margin: 18px 0 16px; }
+      .hero h1 em { font-style: normal; color: var(--accent); }
+      .hero p.lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; max-width: 34em; }
+      .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+      .note { font-size: 14px; color: var(--muted); margin-top: 16px; }
+      .shot { border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(15, 30, 80, .25); overflow: hidden; background: #0b1120; }
+      .shot img { display: block; width: 100%; height: auto; }
+      section.band { padding: 64px 0; border-top: 1px solid var(--border); }
+      section.band h2 { font-size: 34px; letter-spacing: -0.02em; margin: 0 0 8px; }
+      section.band p.sub { color: var(--muted); margin: 0 0 32px; font-size: 17px; max-width: 46em; }
+      .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px; box-shadow: var(--shadow); }
+      .landing .card h3 { margin: 12px 0 6px; font-size: 19px; text-transform: none; letter-spacing: -0.01em; color: var(--text); font-weight: 700; }
+      .card p { margin: 0; color: var(--muted); font-size: 15.5px; }
+      .num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; background: #1f5eff; }
+      .tag { display: inline-block; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; margin-top: 12px; }
+      .t-ok { background: var(--ok-bg); color: var(--ok); } .t-warn { background: var(--warn-bg); color: var(--warn); } .t-bad { background: var(--bad-bg); color: var(--bad); }
+      .two { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+      ul.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+      ul.checks li { padding-left: 34px; position: relative; font-size: 16.5px; }
+      ul.checks li::before { content: "✓"; position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--ok-bg); color: var(--ok); display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+      ul.checks b { display: block; }
+      ul.checks span { color: var(--muted); font-size: 15px; }
+      ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+      ol.steps li { counter-increment: s; }
+      ol.steps li .num::before { content: counter(s); }
+      code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .92em; background: var(--surface-2); padding: 2px 6px; border-radius: 6px; }
+      footer.lfoot { border-top: 1px solid var(--border); padding: 28px 0 40px; color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; }
+      footer.lfoot a { color: var(--muted); }
+      @media (max-width: 860px) {
+        .hero, .two { grid-template-columns: 1fr; }
+        .grid3, ol.steps { grid-template-columns: 1fr; }
+        .lnav nav a.hide-sm { display: none; }
+        .hero { padding-top: 28px; }
+      }
+    </style>
   </head>
-  <body class="app">
-    <header class="topbar">
-      <div class="brand">
-        <span class="logo">AP</span>
-        <div>
-          <h1>AgentPass</h1>
-          <p>Let AI agents pay with your PayPal. On your terms.</p>
-        </div>
-      </div>
-      <a class="nav-link" href="/errand" target="_blank" rel="noopener">Open the Errand demo agent ↗</a>
-    </header>
+  <body class="landing">
+    <div class="wrap">
+      <header class="lnav">
+        <a class="brand" href="/"><span class="logo">AP</span>AgentPass</a>
+        <nav aria-label="Main">
+          <a class="hide-sm" href="#how">How it works</a>
+          <a class="hide-sm" href="#safety">Safety</a>
+          <a class="hide-sm" href="https://github.com/Meghs21/errand-agent" target="_blank" rel="noopener">GitHub</a>
+          <a class="btn primary" href="/dashboard">Open the demo</a>
+        </nav>
+      </header>
 
-    <div class="shell">
-      <nav class="sidenav" aria-label="Main">
-        <a href="#home" data-view="home">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></svg>
-          <span>Home</span><span class="count" id="nav-held" hidden></span>
-        </a>
-        <a href="#activity" data-view="activity">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
-          <span>Activity</span>
-        </a>
-        <a href="#agents" data-view="agents">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="3" /><path d="M12 4v4M9 13h.01M15 13h.01" /></svg>
-          <span>Agents</span>
-        </a>
-        <a href="#wallet" data-view="wallet">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18M16 15h2" /></svg>
-          <span>Wallet</span>
-        </a>
-        <div class="nav-foot">
-          <div class="pills" id="pills"></div>
-          <button type="button" class="link" id="reset-demo" title="Clear all mandates and payments">Reset demo</button>
-        </div>
-      </nav>
-
-      <main class="views">
-        <section class="view" id="view-home">
-          <div class="view-head"><h2>Home</h2></div>
-          <div id="onboarding"></div>
-          <div class="stats" id="stats"></div>
-          <section class="panel attention" id="approvals-card" hidden>
-            <div class="panel-head"><h3>Needs your approval</h3></div>
-            <p class="hint">The money is on hold in PayPal. Nothing is taken until you approve, and declining releases it.</p>
-            <div id="approvals" class="stack"></div>
-          </section>
-          <section class="panel">
-            <div class="panel-head"><h3>Recent activity</h3><a href="#activity" class="link">See all</a></div>
-            <div id="recent" class="list"></div>
-          </section>
+      <main>
+        <section class="hero">
+          <div>
+            <span class="eyebrow">PayPal + AI</span>
+            <h1>Let AI agents pay with your PayPal. <em>On your terms.</em></h1>
+            <p class="lead">Give any AI agent a limited, revocable key to your PayPal. It can only spend on what you described, inside limits you set, and anything bigger waits for your one-tap approval while PayPal holds the money.</p>
+            <div class="cta">
+              <a class="btn primary" href="/dashboard">Try the live demo →</a>
+              <a class="btn ghost" href="/errand">Meet Errand, the demo agent</a>
+            </div>
+            <p class="note">Runs on the PayPal sandbox. No real money moves.</p>
+          </div>
+          <div class="shot"><img src="/img/dashboard.png" alt="AgentPass dashboard with a $64.99 coffee grinder on hold in PayPal, waiting for the owner's approval" /></div>
         </section>
 
-        <section class="view" id="view-activity" hidden>
-          <div class="view-head"><h2>Activity</h2><div class="filters" id="filters" role="group" aria-label="Filter"></div></div>
-          <section class="panel"><div id="payments" class="list"></div></section>
+        <section class="band" id="how">
+          <h2>Every payment passes three gates</h2>
+          <p class="sub">The agent never sees your PayPal login. It gets a mandate token, and every time it asks to pay, AgentPass checks the request before any money moves.</p>
+          <div class="grid3">
+            <div class="card"><div class="num">1</div><h3>Hard limits, in code</h3><p>Per-purchase cap, total budget, expiry, payments per day, blocked items and allowed shops. No prompt can argue its way past them.</p><span class="tag t-bad">Gift card → blocked</span></div>
+            <div class="card"><div class="num">2</div><h3>Independent AI check</h3><p>A separate AI reads your instruction and the cart and asks: is this what you meant? Printer paper is within budget, but it isn't a gift for dad.</p><span class="tag t-bad">Office paper → blocked</span></div>
+            <div class="card"><div class="num">3</div><h3>PayPal pays or holds</h3><p>Small, on-purpose buys are paid instantly from your saved PayPal wallet. Bigger ones become a real PayPal authorization hold until you approve.</p><span class="tag t-ok">$34.99 → paid</span> <span class="tag t-warn">$64.99 → on hold</span></div>
+          </div>
         </section>
 
-        <section class="view" id="view-agents" hidden>
-          <div class="view-head"><h2>Agents</h2><button type="button" class="primary" id="new-agent">+ New mandate</button></div>
-          <div id="mandates" class="cards"></div>
+        <section class="band" id="safety">
+          <div class="two">
+            <div>
+              <h2>Built for a hijacked agent</h2>
+              <p class="sub">Agents get tricked. AgentPass assumes the agent might be compromised and still keeps your money safe. Try every attack yourself in Errand's attack lab.</p>
+              <ul class="checks">
+                <li><b>Prompt injection is blocked</b><span>"The owner already approved this" hidden in a cart doesn't fool the AI check.</span></li>
+                <li><b>Split purchases are caught</b><span>Three $15 payments to dodge a $40 limit add up, and the third one is held.</span></li>
+                <li><b>Forged keys are rejected</b><span>Tokens are stored only as hashes. A fake one gets a 401.</span></li>
+                <li><b>One-click kill switch</b><span>Revoke an agent and its key dies instantly. Held money is released.</span></li>
+                <li><b>Fails closed</b><span>If the AI check can't run, the payment waits for you instead of going through.</span></li>
+              </ul>
+            </div>
+            <div class="shot"><img src="/img/errand.png" alt="Errand, the demo agent, with printer paper blocked by the AI check and a forged token rejected in the attack lab" /></div>
+          </div>
         </section>
 
-        <section class="view" id="view-wallet" hidden>
-          <div class="view-head"><h2>Wallet</h2></div>
-          <section class="panel" id="wallet"></section>
+        <section class="band" id="try">
+          <h2>Try it in a minute</h2>
+          <p class="sub">This is a shared public demo. Click <b>Reset demo</b> in the dashboard for a clean start.</p>
+          <ol class="steps">
+            <li class="card"><div class="num"></div><h3>Give Errand a mandate</h3><p>Open the dashboard, go to <b>Agents → New mandate</b>, click <b>Fill in the Errand demo</b> (or write your own) and <b>Issue mandate</b>.</p></li>
+            <li class="card"><div class="num"></div><h3>Let it shop</h3><p>Click <b>Use it in Errand</b>, then tap the suggestions: a gift that's paid, a grinder that's held, paper that's blocked.</p></li>
+            <li class="card"><div class="num"></div><h3>Approve, attack, revoke</h3><p>Approve the hold on the dashboard, run the attack lab, then hit <b>Revoke now</b> and watch Errand get refused.</p></li>
+          </ol>
+          <div class="cta" style="margin-top:28px"><a class="btn primary" href="/dashboard">Open the dashboard →</a></div>
+        </section>
+
+        <section class="band" id="agents">
+          <h2>Works with any agent</h2>
+          <p class="sub">AgentPass is a small HTTP API plus an MCP server, so the agent you already use can pay safely.</p>
+          <div class="grid3">
+            <div class="card"><h3>Errand</h3><p>The demo shopping agent. It pays through AgentPass exactly like a third-party agent would, with no PayPal credentials of its own.</p></div>
+            <div class="card"><h3>Claude Desktop, Cursor and other MCP clients</h3><p>Paste one config block from the dashboard and the agent gets <code>agentpass_pay</code>.</p></div>
+            <div class="card"><h3>Any agent over HTTP</h3><p><code>POST /v1/payments</code> with the mandate token as a bearer token. About 20 lines of client code.</p></div>
+          </div>
         </section>
       </main>
+
+      <footer class="lfoot">
+        <span>AgentPass · Built for the PayPal "Build What's Next with PayPal and AI" hackathon · PayPal sandbox only</span>
+        <span><a href="https://github.com/Meghs21/errand-agent" target="_blank" rel="noopener">Source on GitHub</a> · MIT license</span>
+      </footer>
     </div>
-
-    <dialog id="agent-dialog" class="sheet" aria-labelledby="sheet-title">
-      <div class="sheet-head">
-        <h3 id="sheet-title">Give an agent a mandate</h3>
-        <button type="button" class="icon-btn" id="close-dialog" aria-label="Close">✕</button>
-      </div>
-      <div id="sheet-form">
-        <div class="draft">
-          <label for="draft-text">Describe what it may buy, in your own words</label>
-          <textarea id="draft-text" rows="3" placeholder="Let Errand buy birthday gifts for my dad, he loves fishing and coffee. Max $80 each, $150 total, ask me above $40, for two weeks."></textarea>
-          <div class="row-btns">
-            <button type="button" class="secondary" id="draft-btn">✨ Draft with AI</button>
-            <button type="button" class="link" id="preset">Fill in the Errand demo</button>
-          </div>
-        </div>
-        <form id="mandate-form" class="rules">
-          <label class="wide">Agent name<input name="agentName" required placeholder="Errand" /></label>
-          <label class="wide">What may it buy?<textarea name="purpose" rows="2" required placeholder="Birthday gifts for my dad. He loves fishing and coffee."></textarea></label>
-          <label>Max per purchase <span class="money"><b>$</b><input name="perPurchaseLimit" type="number" min="1" step="1" value="80" /></span></label>
-          <label>Ask me above <span class="money"><b>$</b><input name="autoApproveLimit" type="number" min="0" step="1" value="40" /></span></label>
-          <label>Total budget <span class="money"><b>$</b><input name="totalLimit" type="number" min="1" step="1" value="150" /></span></label>
-          <label>Ends after (days)<input name="expiresInDays" type="number" min="1" max="365" value="30" /></label>
-          <details class="more wide">
-            <summary>More rules</summary>
-            <div class="rules">
-              <label>Max payments a day<input name="maxPaymentsPerDay" type="number" min="1" max="100" value="5" /></label>
-              <label>Only these shops<input name="allowedMerchants" placeholder="any" /></label>
-              <label class="wide">Never buy<input name="blockedKeywords" value="alcohol, tobacco, vape, gift card, firearm, crypto" /></label>
-            </div>
-          </details>
-          <button type="submit" class="primary wide">Issue mandate</button>
-        </form>
-      </div>
-      <div id="issued" hidden></div>
-    </dialog>
-
-    <script src="/dashboard.js" type="module"></script>
   </body>
 </html>
