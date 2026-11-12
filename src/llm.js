@@ -51,6 +51,12 @@ export function groqClient({ apiKey, baseUrl = "https://api.groq.com/openai/v1" 
       if (res.ok) return fromOpenAI(data);
       const code = data.error?.code;
       if (attempt === 0 && res.status === 400 && /tool_use_failed|json_validate_failed/.test(code || "")) continue;
+      // Free-tier rate limit (tokens per minute): wait as long as Groq asks, then retry.
+      if (res.status === 429 && attempt < 3) {
+        const hinted = Number(res.headers.get("retry-after")) || Number(/try again in ([\d.]+)s/i.exec(data.error?.message || "")?.[1]);
+        await new Promise((r) => setTimeout(r, Math.min(20, (hinted || 5) + 0.5) * 1000));
+        continue;
+      }
       throw Object.assign(new Error(`Groq: ${data.error?.message || `HTTP ${res.status}`}`), { status: res.status });
     }
   }
