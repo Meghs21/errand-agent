@@ -1,3 +1,22 @@
+<p align="center"><img src="docs/images/banner.png" alt="AgentPass: let AI agents pay with your PayPal, on your terms" width="100%"></p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+  <img alt="Node 18.18+" src="https://img.shields.io/badge/node-%E2%89%A518.18-339933?logo=node.js&logoColor=white">
+  <img alt="PayPal Vault, Orders, Payments" src="https://img.shields.io/badge/PayPal-Vault%20%C2%B7%20Orders%20%C2%B7%20Payments-003087?logo=paypal&logoColor=white">
+  <img alt="MCP server included" src="https://img.shields.io/badge/MCP-server%20included-6b4fbb">
+  <img alt="25 tests passing" src="https://img.shields.io/badge/tests-25%20passing-2ea44f">
+</p>
+
+<p align="center">
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#run-it">Run it</a> ·
+  <a href="#agent-api">Agent API</a> ·
+  <a href="#use-it-from-claude-desktop-mcp">Claude Desktop (MCP)</a> ·
+  <a href="https://paypalaihackathon.devpost.com/">Hackathon</a>
+</p>
+
 # AgentPass
 
 **Scoped, revocable PayPal spending permissions for AI agents.**
@@ -36,6 +55,15 @@ Card networks and wallets are all working on "agent authorization": how a person
 
 The dashboard has four pages: **Home** (what needs your approval, totals and recent activity), **Activity** (every request, filterable, with the full reasoning one click away), **Agents** (each mandate, its budget and a revoke button) and **Wallet**. Every request shows a row of three gates (**Limits → AI check → PayPal**) that light up as it passes through.
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Errand pays for a tackle box instantly](docs/images/errand-paid.png) | ![The owner approves a held payment](docs/images/approval.png) |
+| **Paid instantly.** Errand buys a $34.99 tackle box: within limits and on-purpose, so PayPal captures it. | **On hold.** A $64.99 grinder is over the $40 auto-approve limit. PayPal holds the money until the owner taps Approve. |
+| ![Printer paper blocked, attacks stopped](docs/images/errand-blocked-attacks.png) | ![Full reasoning for every request](docs/images/activity-details.png) |
+| **Blocked.** Printer paper fits every limit, but the AI intent check says it isn't a gift for dad. The attack lab's forged token gets a 401. | **Audit trail.** Every request shows each gate's result, the AI's reasons and the PayPal order, authorization and capture IDs. |
+
 ## How PayPal is used
 
 | PayPal capability | What AgentPass does with it |
@@ -49,36 +77,19 @@ The dashboard has four pages: **Home** (what needs your approval, totals and rec
 
 ## How AI is used
 
-- **Intent verifier** (`src/verifier.js`): Claude Opus 5.5 (`claude-opus-5-5`, effort `low`) with **structured outputs** returns `{ decision: approve | needs_review | reject, risk_score, reasons }`. It only judges purpose fit; limits are enforced in code. Cart text is treated as untrusted data, and signs of prompt injection are grounds for rejection. **It fails closed**: if the check errors or refuses, the payment is held for the owner rather than allowed.
-- **Errand, the demo agent** (`src/agent.js`): Claude Opus 5.5 with tool use (`search_products`, `get_mandate`, `pay_for_product`, `check_payment`). It's an ordinary AgentPass client: it holds a mandate token and calls the HTTP API like any third-party agent would. It has no PayPal credentials. Server-side refusal fallback (`fallbacks: "default"`) is enabled.
+- **Intent verifier** (`src/verifier.js`): Claude with **structured outputs** (or Groq, see below) returns `{ decision: approve | needs_review | reject, risk_score, reasons }`. It only judges purpose fit; limits are enforced in code. Cart text is treated as untrusted data, and signs of prompt injection are grounds for rejection. **It fails closed**: if the check errors or refuses, the payment is held for the owner rather than allowed.
+- **Errand, the demo agent** (`src/agent.js`): Claude (or Groq) with tool use (`search_products`, `get_mandate`, `pay_for_product`, `check_payment`). It's an ordinary AgentPass client: it holds a mandate token and calls the HTTP API like any third-party agent would. It has no PayPal credentials.
 - **Plain-English mandates** (`src/drafter.js`): the owner types "Let Errand buy birthday gifts for my dad, max $80 each, $150 total, ask me above $40, for two weeks" and Claude fills in the mandate form with structured outputs. The owner still reviews and issues it; the AI never grants spending on its own.
 - **Claude or Groq.** Claude is the default. Set `GROQ_API_KEY` instead (Groq has a free tier) and the same three AI parts run on Groq's `openai/gpt-oss-120b` with strict JSON-schema outputs. `src/llm.js` translates between the two APIs, so nothing else changes.
 - Product data comes from **[Channel3](https://trychannel3.com)** (100M+ products across 25k+ retailers) when a key is set, otherwise a built-in demo catalog.
 
 ## Architecture
 
-```mermaid
-flowchart LR
-  subgraph Agents
-    E[Errand demo agent<br/>Claude + tools]
-    D[Claude Desktop / any MCP client]
-    X[Any agent over HTTP]
-  end
-  D -- MCP stdio --> M[AgentPass MCP server]
-  E -- Bearer mandate token --> API
-  M -- Bearer mandate token --> API
-  X -- Bearer mandate token --> API
-  API[AgentPass agent API<br/>/v1/payments] --> H{Hard limits}
-  H -- fail --> R[Rejected]
-  H -- pass --> V{AI intent check<br/>Claude, structured output}
-  V -- reject --> R
-  V -- approve, under auto limit --> C[PayPal Orders: CAPTURE<br/>vaulted wallet]
-  V -- needs review, or over auto limit --> A[PayPal Orders: AUTHORIZE<br/>hold on vaulted wallet]
-  A -- owner approves --> CAP[PayPal capture]
-  A -- owner declines / mandate revoked --> VOID[PayPal void]
-  O[Owner dashboard] -- link wallet --> VAULT[PayPal Vault v3]
-  O -- issue / revoke mandates, approve holds, refund --> API
-```
+<p align="center"><img src="docs/images/architecture.png" alt="AgentPass architecture: agents call the AgentPass API with a mandate token; each payment passes hard limits, an AI intent check and PayPal (capture, hold or block); the owner dashboard links the wallet, issues and revokes mandates and approves holds" width="100%"></p>
+
+Agents never touch PayPal credentials. They hold a **mandate token**, and every payment request goes through the same pipeline: hard limits in code, then an independent AI intent check, then PayPal, which either captures right away or places an authorization hold for the owner. A request that fails a gate is blocked before PayPal is ever called. The owner links the wallet once through PayPal Vault and manages everything from the dashboard.
+
+**Project layout**
 
 ```
 server.js              Express: agent API (/v1), owner dashboard API (/api), Errand demo
@@ -90,8 +101,10 @@ src/paypal.js          PayPal REST client (OAuth, Vault, Orders, Authorizations,
 src/agentpass-client.js  The ~20-line client an agent needs
 mcp/server.js          MCP server exposing agentpass_get_mandate, agentpass_pay, agentpass_payment_status
 src/agent.js           Errand, the demo shopping agent
+src/llm.js             Claude or Groq: one messages API for both providers
 src/catalog.js         Channel3 search + demo catalog
 public/                Owner dashboard (/) and Errand (/errand), plain HTML/CSS/JS
+docs/images/           Architecture diagram and screenshots
 test/                  Unit tests for the rules, end-to-end tests for API, pipeline, Errand and MCP
 ```
 
